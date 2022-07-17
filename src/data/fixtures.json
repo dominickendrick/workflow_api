@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "title": "error",
+    "state": "Inbox",
+    "author": "secret squirrel",
+    "editor": "dom",
+    "message": "I have some info"
+  },
+  {
+    "id": 2,
+    "title": "error",
+    "state": "Inbox",
+    "author": "secret squirrel",
+    "editor": "dom",
+    "message": "I have some info"
+  }
+]
