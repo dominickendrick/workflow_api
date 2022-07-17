@@ -60,6 +60,20 @@ fn get_suffix(suffix: Suffix) -> Json<Vec<Card>> {
     Json(cards)
 }
 
+#[put("/merge", data = "<cards>")]
+fn merge(cards: Json<Vec<Card>>) -> Json<Vec<Card>> {
+    let filename = "src/data/fixture1.json";
+
+    //load file from disk ! This is obvs not the best thing to do for peformance ...
+    let contents = fs::read_to_string(&filename)
+        .expect(format!("This failed looking for {} ", &filename).as_str());
+
+    let cards1: Vec<Card> = rocket::serde::json::from_str(contents.as_str()).unwrap();
+
+    //serialise back to json in response
+    cards
+}
+
 #[catch(404)]
 fn not_found() -> Value {
     json!({
@@ -71,7 +85,7 @@ fn not_found() -> Value {
 pub fn stage() -> rocket::fairing::AdHoc {
     rocket::fairing::AdHoc::on_ignite("JSON", |rocket| async {
         rocket
-            .mount("/cards", routes![get_suffix])
+            .mount("/cards", routes![get_suffix, merge])
             .register("/cards", catchers![not_found])
     })
 }

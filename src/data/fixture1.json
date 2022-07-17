@@ -1,11 +1,11 @@
 [
   {
     "id": 1,
-    "title": "error",
+    "title": "Stranger Things",
     "state": "Inbox",
-    "author": "secret squirrel",
-    "editor": "dom",
-    "message": "I have some info"
+    "author": "Ninja",
+    "editor": "betsy",
+    "message": "I need your help to hunt more ninjas"
   },
   {
     "id": 2,
