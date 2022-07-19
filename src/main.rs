@@ -1,14 +1,14 @@
 #[macro_use]
 extern crate rocket;
 
-use std::fmt::Display;
 use std::fs;
 
-use rocket::request::FromParam;
 use rocket::serde::json::{json, Json, Value};
-use rocket::serde::{Deserialize, Serialize};
 
-use workflow_api::card::card::{Card, Suffix};
+use workflow_api::{
+    card::card::{Card, Suffix},
+    merge_stuff::merge_docs,
+};
 
 pub mod card;
 
@@ -31,7 +31,9 @@ fn get_suffix(suffix: Suffix) -> Json<Vec<Card>> {
 }
 
 #[put("/merge", data = "<cards>")]
-fn merge(cards: Json<Vec<Card>>) -> Json<Vec<Card>> {
+fn merge(
+    cards: Json<Vec<Card>>,
+) -> Result<Json<Vec<workflow_api::card::card::Card>>, &'static str> {
     let filename = "src/data/fixture1.json";
 
     //load file from disk ! This is obvs not the best thing to do for peformance ...
@@ -40,8 +42,12 @@ fn merge(cards: Json<Vec<Card>>) -> Json<Vec<Card>> {
 
     let cards1: Vec<Card> = rocket::serde::json::from_str(contents.as_str()).unwrap();
 
+    let merged_cards = merge_docs(&cards1, &cards1);
     //serialise back to json in response
-    cards
+    match merged_cards {
+        Some(json) => Ok(Json(json)),
+        None => Err("Merge failed"),
+    }
 }
 
 #[catch(404)]

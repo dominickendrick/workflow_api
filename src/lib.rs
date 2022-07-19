@@ -1,6 +1,8 @@
 pub mod card;
 
-pub mod mergeStuff {
+pub mod merge_stuff {
+
+    use std::str::from_utf8;
 
     use crate::card::card::Card;
     use automerge::transaction::CommitOptions;
@@ -9,22 +11,23 @@ pub mod mergeStuff {
     use automerge::ObjType;
     use automerge::{Automerge, ROOT};
 
-    use rocket::serde::json::Json;
-    // Based on https://automerge.github.io/docs/quickstart
-    pub fn mergeDocs(doc1: Json<Vec<Card>>, doc2: Json<Vec<Card>>) {
+    pub fn merge_docs(input_doc_1: &Vec<Card>, input_doc_2: &Vec<Card>) -> Option<Vec<Card>> {
         let mut doc1 = Automerge::new();
-        let (cards, card1) = doc1
+        let cards = doc1
             .transact_with::<_, _, AutomergeError, _, ()>(
                 |_| CommitOptions::default().with_message("Add card".to_owned()),
                 |tx| {
                     let cards = tx.put_object(ROOT, "cards", ObjType::List).unwrap();
-                    let card1 = tx.insert_object(&cards, 0, ObjType::Map)?;
-                    tx.put(&card1, "title", "Rewrite everything in Clojure")?;
-                    tx.put(&card1, "done", false)?;
-                    let card2 = tx.insert_object(&cards, 0, ObjType::Map)?;
-                    tx.put(&card2, "title", "Rewrite everything in Haskell")?;
-                    tx.put(&card2, "done", false)?;
-                    Ok((cards, card1))
+                    for (index, card) in input_doc_1.iter().enumerate() {
+                        let new_card = tx.insert_object(&cards, index, ObjType::Map)?;
+                        tx.put(&new_card, "id", card.id.to_string())?;
+                        tx.put(&new_card, "title", &card.title)?;
+                        tx.put(&new_card, "state", &card.state)?;
+                        tx.put(&new_card, "author", &card.author)?;
+                        tx.put(&new_card, "editor", &card.editor)?;
+                        tx.put(&new_card, "message", &card.message)?;
+                    }
+                    Ok(cards)
                 },
             )
             .unwrap()
@@ -36,29 +39,42 @@ pub mod mergeStuff {
         let binary = doc1.save();
         let mut doc2 = Automerge::load(&binary).unwrap();
 
-        doc1.transact_with::<_, _, AutomergeError, _, ()>(
-            |_| CommitOptions::default().with_message("Mark card as done".to_owned()),
-            |tx| {
-                tx.put(&card1, "done", true)?;
-                Ok(())
-            },
-        )
-        .unwrap();
-
-        doc2.transact_with::<_, _, AutomergeError, _, ()>(
-            |_| CommitOptions::default().with_message("Delete card".to_owned()),
-            |tx| {
-                tx.delete(&cards, 0)?;
-                Ok(())
-            },
-        )
-        .unwrap();
-
         doc1.merge(&mut doc2).unwrap();
 
-        for change in doc1.get_changes(&[]).unwrap() {
-            let length = doc1.length_at(&cards, &[change.hash]);
+        let cards = doc2
+            .transact_with::<_, _, AutomergeError, _, ()>(
+                |_| CommitOptions::default().with_message("Add card".to_owned()),
+                |tx| {
+                    let cards = tx.put_object(ROOT, "cards", ObjType::List).unwrap();
+                    for (index, card) in input_doc_2.iter().enumerate() {
+                        let new_card = tx.insert_object(&cards, index, ObjType::Map)?;
+                        tx.put(&new_card, "id", card.id.to_string())?;
+                        tx.put(&new_card, "title", &card.title)?;
+                        tx.put(&new_card, "state", &card.state)?;
+                        tx.put(&new_card, "author", &card.author)?;
+                        tx.put(&new_card, "editor", &card.editor)?;
+                        tx.put(&new_card, "message", &card.message)?;
+                    }
+                    Ok(cards)
+                },
+            )
+            .unwrap()
+            .result;
+
+        println!("{:?}", doc2.dump());
+
+        for change in doc2.get_changes(&[]).unwrap() {
+            let length = doc2.length_at(&cards, &[change.hash]);
             println!("{} {}", change.message().unwrap(), length);
+        }
+        if let Some(output) = doc2.get(cards, "cards").unwrap() {
+            println!("this is output {:?}", output);
+            let final_output: Vec<Card> =
+                rocket::serde::json::from_str(&output.0.to_string()).unwrap();
+
+            Some(final_output)
+        } else {
+            Some(vec![])
         }
     }
 }

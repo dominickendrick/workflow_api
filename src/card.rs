@@ -1,22 +1,19 @@
 pub mod card {
-    use std::fmt::Display;
-    use std::fs;
-
     use rocket::request::FromParam;
-    use rocket::serde::json::{json, Json, Value};
     use rocket::serde::{Deserialize, Serialize};
+    use std::fmt::Display;
 
     type Id = usize;
 
     #[derive(Serialize, Deserialize)]
     #[serde(crate = "rocket::serde")]
     pub struct Card {
-        id: Id,
-        title: String,
-        state: String,
-        author: String,
-        editor: String,
-        message: String,
+        pub id: Id,
+        pub title: String,
+        pub state: String,
+        pub author: String,
+        pub editor: String,
+        pub message: String,
     }
     #[derive(Debug)]
     pub struct Suffix<'r>(pub &'r str);
